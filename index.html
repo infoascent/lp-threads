@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pierre Douet — Growth Operator · Info Ascent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    /* ─── Base ─── */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #080808;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Noise grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+    }
+
+    /* ─── Liquid Glass ─── */
+    .glass {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-radius: 16px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        0 0 0 1px rgba(255,255,255,0.03);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-hover:hover {
+      background: rgba(255,255,255,0.09);
+      box-shadow:
+        0 8px 48px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.18);
+      transform: translateY(-2px);
+    }
+    .card-hover { transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease; }
+
+    /* ─── Typography ─── */
+    h1,h2,h3 { font-weight: 700; color: #fff; line-height: 1.15; }
+    p { color: #9CA3AF; }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #6B7280;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    /* ─── Buttons ─── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: #fff; color: #000;
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px;
+      border-radius: 10px; padding: 14px 32px; border: none; cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 32px rgba(255,255,255,0.2); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: transparent; color: #fff;
+      font-family: 'Inter', sans-serif; font-weight: 600; font-size: 15px;
+      border-radius: 10px; padding: 14px 32px;
+      border: 1px solid rgba(255,255,255,0.25);
+      cursor: pointer; text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-secondary:hover { transform: scale(1.02); box-shadow: 0 0 32px rgba(255,255,255,0.15); }
+    .btn-full { width: 100%; }
+
+    /* ─── Layout ─── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 100px 0; position: relative; }
+
+    /* Section fade-bottom divider */
+    .fade-section::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 100px;
+      background: linear-gradient(to bottom, transparent, #080808);
+      pointer-events: none;
+    }
+
+    /* ─── Scroll reveal ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ─── Card pop (deliverables) ─── */
+    .card-pop {
+      opacity: 0;
+      transform: scale(0.94);
+      transition: opacity 0.5s cubic-bezier(0.22,1,0.36,1), transform 0.5s cubic-bezier(0.22,1,0.36,1);
+    }
+    .card-pop.visible { opacity: 1; transform: scale(1); }
+
+    /* ════════════════════════════════════════
+       1. NAV
+    ════════════════════════════════════════ */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 200;
+      transition: background 0.3s ease, border-color 0.3s ease;
+      border-bottom: 1px solid transparent;
+    }
+    #nav.scrolled {
+      background: rgba(8,8,8,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-color: rgba(255,255,255,0.07);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; max-width: 1100px; margin: 0 auto;
+    }
+    .nav-logo img { height: 32px; width: auto; display: block; }
+    .nav-handle { font-size: 13px; font-weight: 500; color: #6B7280; }
+
+    /* ════════════════════════════════════════
+       2. HERO
+    ════════════════════════════════════════ */
+    #hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding-top: 100px; padding-bottom: 80px;
+      overflow: hidden;
+    }
+    /* Parallax bg layer */
+    #hero-bg {
+      position: absolute; inset: -20%;
+      background:
+        radial-gradient(ellipse 80% 70% at 20% 15%, rgba(255,255,255,0.10) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 55% at 82% 82%, rgba(255,255,255,0.04) 0%, transparent 65%);
+      animation: heroPulse 8s ease-in-out infinite alternate;
+      will-change: transform;
+      pointer-events: none;
+    }
+    @keyframes heroPulse {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0.75; transform: scale(1.05) translate(1.5%, -1.5%); }
+    }
+    .hero-content { position: relative; z-index: 1; text-align: center; width: 100%; }
+
+    /* Pain tags — horizontal scannable list */
+    .pain-tags {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px 4px;
+      margin-bottom: 36px;
+    }
+    .pain-tag {
+      font-size: 13px;
+      font-weight: 500;
+      color: #6B7280;
+      letter-spacing: 0.03em;
+    }
+    .pain-dot { color: rgba(255,255,255,0.15); padding: 0 4px; }
+
+    /* Headline word-stagger */
+    .hero-h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 700;
+      color: #fff;
+      max-width: 700px;
+      margin: 0 auto 24px;
+      line-height: 1.1;
+    }
+    .hero-h1 .word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    }
+    .hero-h1.words-visible .word { opacity: 1; transform: translateY(0); }
+    .hero-h1.words-visible .word:nth-child(1)  { transition-delay: 0.00s; }
+    .hero-h1.words-visible .word:nth-child(2)  { transition-delay: 0.03s; }
+    .hero-h1.words-visible .word:nth-child(3)  { transition-delay: 0.06s; }
+    .hero-h1.words-visible .word:nth-child(4)  { transition-delay: 0.09s; }
+    .hero-h1.words-visible .word:nth-child(5)  { transition-delay: 0.12s; }
+    .hero-h1.words-visible .word:nth-child(6)  { transition-delay: 0.15s; }
+    .hero-h1.words-visible .word:nth-child(7)  { transition-delay: 0.18s; }
+    .hero-h1.words-visible .word:nth-child(8)  { transition-delay: 0.21s; }
+    .hero-h1.words-visible .word:nth-child(9)  { transition-delay: 0.24s; }
+    .hero-h1.words-visible .word:nth-child(10) { transition-delay: 0.27s; }
+
+    /* SVG underline — clean draw-on */
+    .highlight {
+      position: relative;
+      display: inline;
+    }
+    .u-line {
+      position: absolute;
+      bottom: -10px; left: -3px;
+      width: calc(100% + 6px);
+      height: 12px;
+      overflow: visible;
+      pointer-events: none;
+    }
+    .u-line path {
+      stroke-dasharray: 110;
+      stroke-dashoffset: 110;
+      transition: stroke-dashoffset 0.7s cubic-bezier(0.22,1,0.36,1) 0.35s;
+    }
+    .highlight.drawn .u-line path { stroke-dashoffset: 0; }
+
+    /* Hero sub — 3 short lines */
+    .hero-sub {
+      font-size: 17px;
+      color: #6B7280;
+      max-width: 480px;
+      margin: 0 auto 52px;
+      line-height: 2;
+    }
+
+    /* Hero CTA cards */
+    .hero-cards {
+      display: flex; gap: 20px;
+      justify-content: center; align-items: stretch;
+    }
+    .hero-card {
+      flex: 0 1 400px; padding: 28px;
+      text-align: left; display: flex; flex-direction: column;
+    }
+
+    /* Thumbnail */
+    .thumb-wrap {
+      position: relative; border-radius: 10px; overflow: hidden;
+      cursor: pointer; margin-bottom: 16px; aspect-ratio: 16/9;
+    }
+    .thumb-wrap img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .thumb-wrap:hover img { transform: scale(1.03); filter: brightness(1.1); }
+    .play-btn {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 54px; height: 54px;
+      background: rgba(255,255,255,0.14);
+      backdrop-filter: blur(8px);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid rgba(255,255,255,0.32);
+      transition: background 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    .thumb-wrap:hover .play-btn {
+      background: rgba(255,255,255,0.24);
+      transform: translate(-50%,-50%) scale(1.06);
+    }
+    .play-btn svg { margin-left: 3px; }
+    .thumb-caption { font-size: 13px; font-weight: 500; color: #9CA3AF; margin-bottom: 12px; }
+    .thumb-teasers { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .thumb-teasers li {
+      font-size: 13px; color: #6B7280;
+      display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+    }
+    .t-arrow { color: rgba(255,255,255,0.4); flex-shrink: 0; font-size: 11px; margin-top: 2px; }
+
+    /* Right hero card */
+    .hero-waitlist-title { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    .hero-waitlist-tags {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 16px 0 24px;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px; font-weight: 400;
+      color: rgba(255,255,255,0.65);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 5px 14px;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    /* ════════════════════════════════════════
+       3. EMAIL MODAL
+    ════════════════════════════════════════ */
+    #modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      z-index: 500; align-items: center; justify-content: center; padding: 24px;
+    }
+    #modal-overlay.active { display: flex; }
+    #modal-box {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+      border-radius: 20px; padding: 40px;
+      max-width: 480px; width: 100%; position: relative;
+      transform: scale(0.95); opacity: 0;
+      transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+    }
+    #modal-overlay.active #modal-box { transform: scale(1); opacity: 1; }
+    .modal-close {
+      position: absolute; top: 16px; right: 20px;
+      background: none; border: none; color: #6B7280;
+      font-size: 22px; cursor: pointer; line-height: 1; padding: 4px;
+      transition: color 0.2s;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-title { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .modal-sub { font-size: 15px; color: #9CA3AF; margin-bottom: 24px; }
+    .modal-input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 12px 16px;
+      color: #fff; font-family: 'Inter', sans-serif; font-size: 15px;
+      margin-bottom: 12px; outline: none;
+      transition: border-color 0.2s;
+    }
+    .modal-input::placeholder { color: rgba(255,255,255,0.28); }
+    .modal-input:focus { border-color: rgba(255,255,255,0.4); }
+    .modal-note { text-align: center; font-size: 12px; color: #6B7280; margin-top: 10px; }
+
+    /* ════════════════════════════════════════
+       3b. ROOT CAUSE
+    ════════════════════════════════════════ */
+    .root-cause-wrap { padding: 0 0 60px; }
+    .root-cause {
+      max-width: 640px; margin: 0 auto;
+      text-align: center; padding: 36px 44px;
+    }
+    .root-cause-title {
+      font-size: clamp(18px, 2.2vw, 24px);
+      font-weight: 700; color: #fff;
+      margin-bottom: 16px; line-height: 1.3;
+    }
+    .root-cause-items {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .root-cause-items span {
+      font-size: 15px; color: #9CA3AF; line-height: 1.6;
+    }
+    @media (max-width: 768px) { .root-cause { padding: 28px 24px; } }
+
+    /* ════════════════════════════════════════
+       4. DELIVERABLES
+    ════════════════════════════════════════ */
+    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header h2 { font-size: clamp(26px, 3.5vw, 38px); margin-bottom: 10px; }
+    .section-header p { font-size: 15px; max-width: 420px; margin: 0 auto; color: #6B7280; }
+
+    .deliverables-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .d-card { padding: 22px 24px; }
+    .d-icon { font-size: 24px; margin-bottom: 10px; display: block; }
+    .d-title { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.4; }
+    .d-subtitle {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #374151; margin-top: 8px; display: block;
+    }
+
+    /* ════════════════════════════════════════
+       5. ROADMAP — ghost timeline
+    ════════════════════════════════════════ */
+    #roadmap { overflow: hidden; }
+    .timeline-wrap {
+      position: relative; max-width: 760px;
+      margin: 0 auto; padding: 20px 0 40px;
+    }
+    .timeline-line-track {
+      position: absolute; left: 50%; top: 0;
+      transform: translateX(-50%);
+      width: 1px; height: 100%;
+      background: rgba(255,255,255,0.05);
+    }
+    .timeline-line-fill {
+      position: absolute; top: 0; left: 0;
+      width: 1px; height: 0%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.06));
+    }
+    .timeline-item {
+      display: flex; align-items: center;
+      margin-bottom: 36px; position: relative;
+    }
+    .timeline-item:nth-child(odd) { flex-direction: row-reverse; }
+    .timeline-item:nth-child(odd) .tl-card { margin-right: 44px; text-align: right; }
+    .timeline-item:nth-child(even) .tl-card { margin-left: 44px; }
+
+    /* Ghost cards for roadmap */
+    .tl-card {
+      flex: 1;
+      max-width: calc(50% - 44px);
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+    }
+    .tl-phase { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #374151; margin-bottom: 3px; }
+    .tl-title { font-size: 15px; font-weight: 600; color: #fff; }
+    .tl-hint { font-size: 12px; color: #4B5563; margin-top: 3px; }
+
+    .tl-node {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: 34px; height: 34px;
+      background: #080808;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5);
+      z-index: 1; flex-shrink: 0;
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .tl-node.pulsed {
+      border-color: rgba(255,255,255,0.6);
+      color: #fff;
+      animation: nodePulse 0.4s ease-out;
+    }
+    @keyframes nodePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.35); }
+      60%  { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+
+    /* Timeline card reveal from sides */
+    .timeline-item:nth-child(odd) .tl-card {
+      opacity: 0; transform: translateX(24px);
+      transition: opacity 0.5s cubic-bezier(0.22,1,0.36,1), transform 0.5s cubic-bezier(0.22,1,0.36,1);
+    }
+    .timeline-item:nth-child(even) .tl-card {
+      opacity: 0; transform: translateX(-24px);
+      transition: opacity 0.5s cubic-bezier(0.22,1,0.36,1), transform 0.5s cubic-bezier(0.22,1,0.36,1);
+    }
+    .timeline-item.visible .tl-card { opacity: 1; transform: translateX(0); }
+
+    /* ════════════════════════════════════════
+       6. HOW IT WORKS
+    ════════════════════════════════════════ */
+    .how-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .how-card { padding: 30px; }
+    .how-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+    .how-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    .how-desc { font-size: 14px; color: #6B7280; line-height: 1.6; }
+
+    /* ════════════════════════════════════════
+       7. WAITLIST
+    ════════════════════════════════════════ */
+    #waitlist {
+      background: rgba(255,255,255,0.015);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Halo glow behind CTA */
+    #waitlist::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 100%; height: 100%;
+      background: radial-gradient(ellipse 60% 40% at 50% 55%, rgba(255,255,255,0.05), transparent);
+      pointer-events: none;
+    }
+    .waitlist-inner { max-width: 580px; margin: 0 auto; position: relative; }
+    .waitlist-inner h2 { font-size: clamp(28px, 4vw, 42px); margin-bottom: 12px; }
+    .waitlist-inner > p { font-size: 15px; color: #6B7280; margin-bottom: 32px; line-height: 1.7; }
+    .waitlist-features {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 10px;
+      margin: 0 auto 32px; max-width: 360px; text-align: left;
+    }
+    .waitlist-features li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #9CA3AF; }
+    .icon-spark { color: #fff; font-style: normal; flex-shrink: 0; }
+    .waitlist-note { font-size: 12px; color: #4B5563; margin-top: 12px; line-height: 1.6; }
+
+    /* Scarcity badge */
+    .scarcity-badge {
+      display: inline-block;
+      background: rgba(232,54,26,0.10);
+      border: 1px solid rgba(232,54,26,0.25);
+      color: #E8361A;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      border-radius: 100px; padding: 5px 14px;
+      margin-bottom: 18px;
+    }
+
+    /* ════════════════════════════════════════
+       8. FOOTER
+    ════════════════════════════════════════ */
+    #footer { padding: 36px 0; text-align: center; }
+    #footer p { font-size: 13px; color: #2D3748; }
+
+    /* ════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .deliverables-grid { grid-template-columns: repeat(2,1fr); }
+      .how-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 768px) {
+      section { padding: 72px 0; }
+      .hero-cards { flex-direction: column; align-items: center; }
+      .hero-card { flex: none; width: 100%; max-width: 460px; }
+      .hero-h1 { font-size: clamp(36px, 9vw, 52px); }
+      .deliverables-grid { grid-template-columns: 1fr; }
+      .how-grid { grid-template-columns: 1fr; }
+      /* Mobile timeline */
+      .timeline-line-track, .timeline-line-fill { left: 17px; transform: none; }
+      .timeline-item, .timeline-item:nth-child(odd) { flex-direction: row; }
+      .tl-node { left: 17px; transform: translateX(-50%); }
+      .timeline-item:nth-child(odd) .tl-card,
+      .timeline-item:nth-child(even) .tl-card {
+        margin-left: 48px; margin-right: 0;
+        max-width: calc(100% - 48px); text-align: left;
+        transform: translateX(18px);
+      }
+      .timeline-item.visible .tl-card { transform: translateX(0); }
+    }
+
+    /* Card pop stagger */
+    .pop-grid > *:nth-child(1)  { transition-delay: 0.000s; }
+    .pop-grid > *:nth-child(2)  { transition-delay: 0.060s; }
+    .pop-grid > *:nth-child(3)  { transition-delay: 0.120s; }
+    .pop-grid > *:nth-child(4)  { transition-delay: 0.180s; }
+    .pop-grid > *:nth-child(5)  { transition-delay: 0.240s; }
+    .pop-grid > *:nth-child(6)  { transition-delay: 0.300s; }
+    .pop-grid > *:nth-child(7)  { transition-delay: 0.360s; }
+    .pop-grid > *:nth-child(8)  { transition-delay: 0.420s; }
+    .pop-grid > *:nth-child(9)  { transition-delay: 0.480s; }
+    .pop-grid > *:nth-child(10) { transition-delay: 0.540s; }
+    .pop-grid > *:nth-child(11) { transition-delay: 0.600s; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     1. NAV
+════════════════════════════════════════ -->
+<nav id="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <img src="brand_assets/4E30560A-ED69-4E4D-8418-E781555BAA93 3.PNG" alt="Info Ascent" />
+    </div>
+    <span class="nav-handle">@pierreantdouet</span>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════
+     2. HERO
+════════════════════════════════════════ -->
+<section id="hero">
+  <div id="hero-bg" aria-hidden="true"></div>
+  <div class="container">
+    <div class="hero-content">
+
+      <!-- H1 — word stagger + single SVG underline — first visual element -->
+      <h1 class="hero-h1" id="heroH1">
+        <span class="word">Ton</span>&nbsp;<span class="word">expertise</span>&nbsp;<span class="word">change</span>&nbsp;<span class="word">des</span>&nbsp;<span class="word">vies.</span><br>
+        <span class="word"><span class="highlight">Mes&nbsp;systèmes<svg class="u-line" viewBox="0 0 100 8" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M2,5 Q50,2 98,5" stroke="#E8361A" stroke-width="3" stroke-linecap="round"/></svg></span></span>&nbsp;<span class="word">font</span>&nbsp;<span class="word">tourner</span>&nbsp;<span class="word">le</span>&nbsp;<span class="word">reste.</span>
+      </h1>
+
+      <!-- Sub — 3 short lines -->
+      <p class="hero-sub reveal">
+        Pas de formation à appliquer seul.<br>
+        Pas d'agence qui livre des slides et disparaît.<br>
+        Je construis et j'optimise à tes côtés — jusqu'à ce que ça tourne.
+      </p>
+
+      <!-- CTA cards -->
+      <div class="hero-cards">
+        <!-- Left: free training -->
+        <div class="hero-card glass card-hover reveal">
+          <span class="eyebrow">Formation gratuite</span>
+          <div class="thumb-wrap" id="openModal" role="button" tabindex="0" aria-label="Regarder la formation gratuite">
+            <img src="brand_assets/Miniature Formation Gratuite.png" alt="Miniature formation gratuite" />
+            <div class="play-btn">
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                <path d="M6 3.5L14.5 9 6 14.5V3.5Z" fill="white"/>
+              </svg>
+            </div>
+          </div>
+          <p class="thumb-caption">Le système complet — 30 min →</p>
+          <ul class="thumb-teasers">
+            <li><span class="t-arrow">→</span>Signer à 3k€+ avec 500 abonnés</li>
+            <li><span class="t-arrow">→</span>Du contenu au client en 3 étapes</li>
+            <li><span class="t-arrow">→</span>Automatiser sans paraître un robot</li>
+          </ul>
+        </div>
+
+        <!-- Right: waitlist -->
+        <div class="hero-card glass card-hover reveal">
+          <span class="eyebrow">Travailler avec Pierre</span>
+          <p class="hero-waitlist-title">3 créateurs. Je pilote tout.</p>
+          <div class="hero-waitlist-tags">
+            <span class="hero-tag">Offre HT</span>
+            <span class="hero-tag">Contenu</span>
+            <span class="hero-tag">Acquisition</span>
+            <span class="hero-tag">Vente</span>
+            <span class="hero-tag">Backend</span>
+            <span class="hero-tag">Automatisations</span>
+          </div>
+          <a href="https://tally.so/r/mKKz5z" target="_blank" class="btn-secondary">Demander ma place →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     3. EMAIL CAPTURE MODAL
+════════════════════════════════════════ -->
+<div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div id="modal-box">
+    <button class="modal-close" id="closeModal" aria-label="Fermer">×</button>
+    <h2 class="modal-title" id="modal-title">Accède à la formation gratuite</h2>
+    <p class="modal-sub">Prénom + email — accès immédiat.</p>
+    <form id="modal-form" novalidate>
+      <input class="modal-input" id="modal-firstname" type="text" name="firstname" placeholder="Ton prénom" required />
+      <input class="modal-input" id="modal-email" type="email" name="email" placeholder="Ton adresse email" required />
+      <button type="submit" class="btn-primary btn-full" id="modal-submit">Accéder à la formation →</button>
+    </form>
+    <p class="modal-note">Accès immédiat. Zéro spam.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     3b. ROOT CAUSE
+════════════════════════════════════════ -->
+<div class="root-cause-wrap">
+  <div class="container">
+    <div class="root-cause glass reveal">
+      <h3 class="root-cause-title">Ce n'est pas toi le problème.</h3>
+      <div class="root-cause-items">
+        <span>Pas un manque de compétences.</span>
+        <span>Un manque de systèmes, d'infrastructure et d'exécution.</span>
+        <span>Du reach sans backend, c'est du reach sans revenus.</span>
+        <span>Une bonne offre sans acquisition, c'est un sprint permanent.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     4. DELIVERABLES
+════════════════════════════════════════ -->
+<section id="deliverables" class="fade-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>Ce qu'on construit ensemble</h2>
+      <p>Un écosystème complet. Pas des demi-mesures.</p>
+    </div>
+    <div class="deliverables-grid pop-grid">
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">🔍</span>
+        <p class="d-title">Tu sais exactement à qui tu parles.</p>
+        <span class="d-subtitle">Étude de marché &amp; PMF</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">💎</span>
+        <p class="d-title">Ton offre se vend à 3k€+ sans justifier.</p>
+        <span class="d-subtitle">Offre High Ticket &amp; USP</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">🎨</span>
+        <p class="d-title">Le bon prospect te reconnaît au premier scroll.</p>
+        <span class="d-subtitle">Brand &amp; positionnement</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">📱</span>
+        <p class="d-title">Contenu → leads. Sans sprint permanent.</p>
+        <span class="d-subtitle">Acquisition organique</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">💬</span>
+        <p class="d-title">Ton DM devient un pipeline. Tu ne chasses plus.</p>
+        <span class="d-subtitle">Inbound &amp; outreach</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">📣</span>
+        <p class="d-title">Tu scales ce qui marche. Rien d'autre.</p>
+        <span class="d-subtitle">Ads &amp; retargeting</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">🔄</span>
+        <p class="d-title">Prospects qualifiés, informés, prêts à closer.</p>
+        <span class="d-subtitle">Funnels &amp; conversion</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">🤝</span>
+        <p class="d-title">Tu closes avec confiance. Ton taux monte.</p>
+        <span class="d-subtitle">Système de vente</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">👥</span>
+        <p class="d-title">Ton équipe tourne sans toi.</p>
+        <span class="d-subtitle">Team &amp; scaling</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">⚙️</span>
+        <p class="d-title">Chaque lead suivi, relancé, converti. Auto.</p>
+        <span class="d-subtitle">Backend &amp; automatisations</span>
+      </div>
+      <div class="d-card glass card-hover card-pop">
+        <span class="d-icon">📊</span>
+        <p class="d-title">Décisions sur la data, pas les intuitions.</p>
+        <span class="d-subtitle">Tracking &amp; data</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     5. ROADMAP — ghost timeline
+════════════════════════════════════════ -->
+<section id="roadmap">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>Comment on y arrive</h2>
+      <p>9 phases. De l'audit à la croissance autonome.</p>
+    </div>
+    <div class="timeline-wrap" id="timelineWrap">
+      <div class="timeline-line-track">
+        <div class="timeline-line-fill" id="timelineFill"></div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 1</p><p class="tl-title">Diagnostic</p><p class="tl-hint">Audit business &amp; positionnement</p></div>
+        <div class="tl-node" data-index="0">1</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 2</p><p class="tl-title">Étude de marché</p><p class="tl-hint">Niche, concurrence, opportunités</p></div>
+        <div class="tl-node" data-index="1">2</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 3</p><p class="tl-title">Offre</p><p class="tl-hint">HT + LT, pricing, livrables</p></div>
+        <div class="tl-node" data-index="2">3</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 4</p><p class="tl-title">Infrastructure</p><p class="tl-hint">CRM, funnels, tracking</p></div>
+        <div class="tl-node" data-index="3">4</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 5</p><p class="tl-title">Private Launch</p><p class="tl-hint">Premiers clients signés</p></div>
+        <div class="tl-node" data-index="4">5</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 6</p><p class="tl-title">Produit</p><p class="tl-hint">Délivrabilité &amp; résultats clients</p></div>
+        <div class="tl-node" data-index="5">6</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 7</p><p class="tl-title">Acquisition</p><p class="tl-hint">Contenu, outreach, Ads</p></div>
+        <div class="tl-node" data-index="6">7</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 8</p><p class="tl-title">Team</p><p class="tl-hint">Setters, closers, SOP</p></div>
+        <div class="tl-node" data-index="7">8</div>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-card"><p class="tl-phase">Phase 9</p><p class="tl-title">Scale</p><p class="tl-hint">Optimisation continue</p></div>
+        <div class="tl-node" data-index="8">9</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     6. HOW IT WORKS
+════════════════════════════════════════ -->
+<section id="how">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>Le modèle</h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-card glass card-hover reveal">
+        <span class="how-icon">🤝</span>
+        <p class="how-title">Partenariat</p>
+        <p class="how-desc">Associé, pas prestataire. Je pilote la croissance à tes côtés.</p>
+      </div>
+      <div class="how-card glass card-hover reveal">
+        <span class="how-icon">🏗️</span>
+        <p class="how-title">Done For You</p>
+        <p class="how-desc">Je construis les systèmes pour toi. Tu focus sur ton expertise.</p>
+      </div>
+      <div class="how-card glass card-hover reveal">
+        <span class="how-icon">📈</span>
+        <p class="how-title">Optimisation continue</p>
+        <p class="how-desc">Chaque semaine, des priorités concrètes. On améliore chaque levier.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     7. WAITLIST
+════════════════════════════════════════ -->
+<section id="waitlist">
+  <div class="container">
+    <div class="waitlist-inner">
+      <div class="scarcity-badge reveal">2 places restantes sur 3</div>
+      <h2 class="reveal">On travaille ensemble ?</h2>
+      <p class="reveal">100% impliqué dans chaque business.<br>Pas de délégation, pas de template générique.<br>3 créateurs maximum — c'est non négociable.</p>
+      <ul class="waitlist-features">
+        <li class="reveal"><i class="icon-spark">✦</i> Dashboard Notion + KPI complet</li>
+        <li class="reveal"><i class="icon-spark">✦</i> Templates, scripts et SOP prêts</li>
+        <li class="reveal"><i class="icon-spark">✦</i> Canal privé pour avancer vite</li>
+      </ul>
+      <a href="https://tally.so/r/mKKz5z" target="_blank" class="btn-secondary reveal" style="max-width:400px; margin:0 auto; display:flex; justify-content:center;">
+        Soumettre mon profil →
+      </a>
+      <p class="waitlist-note reveal">Pierre examine chaque profil manuellement.<br>Les créateurs qui attendent reprennent leur place dans 3 mois.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     8. FOOTER
+════════════════════════════════════════ -->
+<footer id="footer">
+  <div class="container">
+    <p>@pierreantdouet · Info Ascent · 2025</p>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════
+     JS
+════════════════════════════════════════ -->
+<script>
+  /* ─── Nav glassmorphism on scroll ─── */
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  }, { passive: true });
+
+  /* ─── Hero parallax bg (ratio 0.3) ─── */
+  const heroBg = document.getElementById('hero-bg');
+  window.addEventListener('scroll', () => {
+    heroBg.style.transform = `translateY(${window.scrollY * 0.3}px)`;
+  }, { passive: true });
+
+  /* ─── Scroll reveal (.reveal) ─── */
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  /* ─── Headline word stagger + SVG underline draw-on ─── */
+  const heroH1 = document.getElementById('heroH1');
+  const h1Obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        heroH1.classList.add('words-visible');
+        heroH1.querySelectorAll('.highlight').forEach(h => h.classList.add('drawn'));
+        h1Obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  h1Obs.observe(heroH1);
+
+  /* ─── Card pop (deliverables) ─── */
+  const popObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); popObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.card-pop').forEach(el => popObs.observe(el));
+
+  /* ─── Timeline: cards reveal from sides ─── */
+  const tlCardObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); tlCardObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.timeline-item').forEach(el => tlCardObs.observe(el));
+
+  /* ─── Timeline line scroll-driven + node pulse ─── */
+  const fill      = document.getElementById('timelineFill');
+  const wrap      = document.getElementById('timelineWrap');
+  const nodes     = Array.from(document.querySelectorAll('.tl-node'));
+  const pulsedSet = new Set();
+
+  function updateTimeline() {
+    const rect   = wrap.getBoundingClientRect();
+    const winH   = window.innerHeight;
+    const total  = wrap.offsetHeight;
+    const scrolled = Math.max(0, winH * 0.6 - rect.top);
+    const pct    = Math.min(100, Math.max(0, (scrolled / total) * 100));
+    fill.style.height = pct + '%';
+
+    /* Pulse each node when the fill line reaches it */
+    const filledPx = (pct / 100) * total;
+    nodes.forEach((node, i) => {
+      const nodeTop = node.offsetTop - wrap.offsetTop;
+      if (filledPx >= nodeTop && !pulsedSet.has(i)) {
+        pulsedSet.add(i);
+        node.classList.add('pulsed');
+      }
+    });
+  }
+  window.addEventListener('scroll', updateTimeline, { passive: true });
+  updateTimeline();
+
+  /* ─── Modal ─── */
+  const overlay   = document.getElementById('modal-overlay');
+  const openBtn   = document.getElementById('openModal');
+  const closeBtn  = document.getElementById('closeModal');
+  const form      = document.getElementById('modal-form');
+  const submitBtn = document.getElementById('modal-submit');
+
+  function openModal()  { overlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
+  function closeModal() { overlay.classList.remove('active'); document.body.style.overflow = ''; }
+
+  openBtn.addEventListener('click', openModal);
+  openBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openModal(); });
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  /* Show inline error inside modal */
+  function setModalError(msg) {
+    let el = document.getElementById('modal-error');
+    if (!el) {
+      el = document.createElement('p');
+      el.id = 'modal-error';
+      el.style.cssText = 'color:#E8361A;font-size:13px;margin-top:8px;text-align:center;';
+      submitBtn.insertAdjacentElement('afterend', el);
+    }
+    el.textContent = msg;
+  }
+  function clearModalError() {
+    const el = document.getElementById('modal-error');
+    if (el) el.textContent = '';
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    clearModalError();
+
+    const emailEl = document.getElementById('modal-email');
+    const firstEl = document.getElementById('modal-firstname');
+    const emailVal = emailEl.value.trim();
+    const firstVal = firstEl.value.trim();
+
+    /* ── Validation ── */
+    if (!firstVal) { setModalError('Entre ton prénom.'); firstEl.focus(); return; }
+    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      setModalError('Entre une adresse email valide.'); emailEl.focus(); return;
+    }
+
+    submitBtn.textContent = 'Chargement…';
+    submitBtn.disabled = true;
+
+    fetch('https://hook.eu1.make.com/3bia79wu1647kdqqgqxgwwfdth6yn71i', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailVal, firstName: firstVal })
+    })
+    .then(res => {
+      /* fetch resolves on 4xx/5xx — must check res.ok */
+      if (!res.ok) return res.text().then(t => { throw new Error(t || res.status); });
+      closeModal();
+      window.open('https://youtu.be/1DTEHblurEQ', '_blank');
+    })
+    .catch(err => {
+      console.error('[Systeme.io]', err);
+      /* Still send to YouTube — user is never blocked */
+      closeModal();
+      window.open('https://youtu.be/1DTEHblurEQ', '_blank');
+    })
+    .finally(() => {
+      submitBtn.textContent = 'Accéder à la formation →';
+      submitBtn.disabled = false;
+    });
+  });
+</script>
+</body>
+</html>
