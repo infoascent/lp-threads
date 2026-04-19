@@ -574,7 +574,7 @@
 <nav id="nav">
   <div class="nav-inner">
     <div class="nav-logo">
-      <img src="4E30560A-ED69-4E4D-8418-E781555BAA93 3.PNG" alt="Info Ascent" />
+      <img src="brand_assets/4E30560A-ED69-4E4D-8418-E781555BAA93 3.PNG" alt="Info Ascent" />
     </div>
     <span class="nav-handle">@pierreantdouet</span>
   </div>
@@ -607,7 +607,7 @@
         <div class="hero-card glass card-hover reveal">
           <span class="eyebrow">Formation gratuite</span>
           <div class="thumb-wrap" id="openModal" role="button" tabindex="0" aria-label="Regarder la formation gratuite">
-            <img src="Miniature Formation Gratuite.png" alt="Miniature formation gratuite" />
+            <img src="brand_assets/Miniature Formation Gratuite.png" alt="Miniature formation gratuite" />
             <div class="play-btn">
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
                 <path d="M6 3.5L14.5 9 6 14.5V3.5Z" fill="white"/>
@@ -970,6 +970,8 @@
     if (el) el.textContent = '';
   }
 
+  let confirmStep = false; /* false = premier submit, true = deuxième submit */
+
   form.addEventListener('submit', e => {
     e.preventDefault();
     clearModalError();
@@ -985,8 +987,20 @@
       setModalError('Entre une adresse email valide.'); emailEl.focus(); return;
     }
 
+    /* ── Premier submit : warning de confirmation ── */
+    if (!confirmStep) {
+      confirmStep = true;
+      setModalError('⚠️ Assure-toi d\'entrer ton vrai email — la formation sera envoyée à cette adresse.');
+      submitBtn.textContent = 'Oui, c\'est mon vrai email →';
+      emailEl.style.border = '2px solid #fde296';
+      return;
+    }
+
+    /* ── Deuxième submit : envoi réel ── */
+    confirmStep = false;
     submitBtn.textContent = 'Chargement…';
     submitBtn.disabled = true;
+    emailEl.style.border = '';
 
     fetch('https://hook.eu1.make.com/3bia79wu1647kdqqgqxgwwfdth6yn71i', {
       method: 'POST',
@@ -994,14 +1008,12 @@
       body: JSON.stringify({ email: emailVal, firstName: firstVal })
     })
     .then(res => {
-      /* fetch resolves on 4xx/5xx — must check res.ok */
       if (!res.ok) return res.text().then(t => { throw new Error(t || res.status); });
       closeModal();
       window.open('https://youtu.be/1DTEHblurEQ', '_blank');
     })
     .catch(err => {
       console.error('[Systeme.io]', err);
-      /* Still send to YouTube — user is never blocked */
       closeModal();
       window.open('https://youtu.be/1DTEHblurEQ', '_blank');
     })
@@ -1009,6 +1021,16 @@
       submitBtn.textContent = 'Accéder à la formation →';
       submitBtn.disabled = false;
     });
+  });
+
+  /* Reset confirmStep si l'utilisateur modifie l'email après le warning */
+  document.getElementById('modal-email').addEventListener('input', () => {
+    if (confirmStep) {
+      confirmStep = false;
+      submitBtn.textContent = 'Accéder à la formation →';
+      document.getElementById('modal-email').style.border = '';
+      clearModalError();
+    }
   });
 </script>
 </body>
